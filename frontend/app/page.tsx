@@ -1,6 +1,11 @@
-import Canvas from '../components/Canvas';
+'use client';
+
+import Canvas from '../src/components/Canvas/Canvas';
+import { useStore } from '../src/store/useStore';
 
 export default function Home() {
+  const { clearPoints } = useStore();
+
   return (
     <div className="min-h-screen bg-white">
       <main className="w-full px-2 py-8">
@@ -10,6 +15,16 @@ export default function Home() {
           {/* Main visualization area */}
           <div className="lg:col-span-3 bg-gray-50 rounded-lg p-4">
             <Canvas />
+            <div className="mt-4">
+              <button
+                onClick={() => {
+                  console.log('Clear Points button clicked');
+                  clearPoints();
+                }}
+                className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors">
+                Clear Points
+              </button>
+            </div>
           </div>
 
           {/* Control panel */}
@@ -46,12 +61,6 @@ export default function Home() {
                 <div className="bg-white p-2 rounded">
                   <p className="text-sm">R² Score: <span className="font-mono">0.00</span></p>
                 </div>
-              </div>
-
-              <div>
-                <button className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors">
-                  Clear Points
-                </button>
               </div>
             </div>
           </div>

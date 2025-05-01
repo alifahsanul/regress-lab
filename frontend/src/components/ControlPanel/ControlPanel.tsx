@@ -1,3 +1,5 @@
+'use client';
+
 import { motion } from 'framer-motion';
 import { useStore } from '../../store/useStore';
 
@@ -92,15 +94,8 @@ const ControlPanel = () => {
           <span className="text-sm text-gray-500">{treeMaxDepth}</span>
         </div>
       )}
-
-      <button
-        onClick={clearPoints}
-        className="w-full bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 transition-colors"
-      >
-        Clear Points
-      </button>
     </motion.div>
   );
 };
 
-export default ControlPanel; 
+export default ControlPanel;

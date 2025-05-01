@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+'use client';
+
+import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { useStore } from '../../store/useStore';
 import { motion } from 'framer-motion';
@@ -8,63 +10,9 @@ interface Point {
   y: number;
 }
 
-interface RegressionResult {
-  coefficients: number[];
-  intercept: number;
-  r2_score: number;
-  predictions: number[];
-}
-
 const Canvas = () => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const { points, selectedModel, polynomialDegree, treeMaxDepth, addPoint, updatePoint } = useStore();
-  const [regressionLine, setRegressionLine] = useState<Point[]>([]);
-  const [r2Score, setR2Score] = useState<number | null>(null);
-
-
-  const fitRegression = async () => {
-    if (points.length < 2) return;
-
-    try {
-      const response = await fetch('http://localhost:8000/api/fit', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          points,
-          model_type: selectedModel,
-          polynomial_degree: polynomialDegree,
-          tree_max_depth: treeMaxDepth,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fit regression');
-      }
-
-      const result: RegressionResult = await response.json();
-      setR2Score(result.r2_score);
-
-      // Generate points for the regression line
-      const xMin = Math.min(...points.map(p => p.x));
-      const xMax = Math.max(...points.map(p => p.x));
-      const xRange = d3.range(xMin, xMax, (xMax - xMin) / 100);
-      
-      const linePoints = xRange.map(x => ({
-        x,
-        y: result.predictions[0] // For now, just use the first prediction
-      }));
-
-      setRegressionLine(linePoints);
-    } catch (error) {
-      console.error('Error fitting regression:', error);
-    }
-  };
-
-  useEffect(() => {
-    fitRegression();
-  }, [points, selectedModel, polynomialDegree, treeMaxDepth]);
+  const { points, addPoint, updatePoint } = useStore();
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -80,7 +28,7 @@ const Canvas = () => {
     // Create scales
     const xScale = d3.scaleLinear()
       .domain([-10, 10])
-      .range([margin.left, width - margin.right]);
+      .range([margin.left, width - 2 * margin.left - margin.right]);
 
     const yScale = d3.scaleLinear()
       .domain([-10, 10])
@@ -113,35 +61,29 @@ const Canvas = () => {
         .tickSize(-width + margin.left + margin.right)
         .tickFormat(() => ''));
 
-    // Add regression line
-    if (regressionLine.length > 0) {
-      const line = d3.line<Point>()
-        .x(d => xScale(d.x))
-        .y(d => yScale(d.y));
-
-      svg.append('path')
-        .datum(regressionLine)
-        .attr('fill', 'none')
-        .attr('stroke', '#ef4444')
-        .attr('stroke-width', 2)
-        .attr('d', line);
-    }
-
     // Add points
-    svg.selectAll<SVGCircleElement, Point>('circle')
-      .data(points)
-      .join('circle')
-      .attr('cx', (d: Point) => xScale(d.x))
-      .attr('cy', (d: Point) => yScale(d.y))
-      .attr('r', 5)
-      .attr('fill', '#3b82f6')
-      .call(d3.drag<SVGCircleElement, Point>()
-        .on('drag', (event, d) => {
-          const x = xScale.invert(event.x);
-          const y = yScale.invert(event.y);
-          const index = points.findIndex((p: Point) => p === d);
-          updatePoint(index, { x, y });
-        }));
+    const circles = svg.selectAll<SVGCircleElement, Point>('circle')
+      .data(points);
+
+    circles.join(
+      enter => enter.append('circle')
+        .attr('cx', (d: Point) => xScale(d.x))
+        .attr('cy', (d: Point) => yScale(d.y))
+        .attr('r', 5)
+        .attr('fill', '#3b82f6')
+        .call(d3.drag<SVGCircleElement, Point>()
+          .on('drag', (event, d) => {
+            const x = xScale.invert(event.x);
+            const y = yScale.invert(event.y);
+            const index = points.findIndex((p: Point) => p === d);
+            updatePoint(index, { x, y });
+          })
+        ),
+      update => update
+        .attr('cx', (d: Point) => xScale(d.x))
+        .attr('cy', (d: Point) => yScale(d.y)),
+      exit => exit.remove()
+    );
 
     // Add click handler for new points
     svg.on('click', (event) => {
@@ -153,7 +95,9 @@ const Canvas = () => {
       addPoint(newPoint);
     });
 
-  }, [points, regressionLine, addPoint, updatePoint]);
+    console.log('Canvas points:', points);
+
+  }, [points, addPoint, updatePoint]);
 
   return (
     <motion.div
@@ -161,13 +105,6 @@ const Canvas = () => {
       animate={{ opacity: 1 }}
       className="bg-white rounded-lg shadow-lg p-4"
     >
-      <div className="mb-4">
-        {r2Score !== null && (
-          <div className="text-sm text-gray-600">
-            R² Score: {r2Score.toFixed(4)}
-          </div>
-        )}
-      </div>
       <svg
         ref={svgRef}
         width={500}
@@ -178,4 +115,4 @@ const Canvas = () => {
   );
 };
 
-export default Canvas; 
+export default Canvas;

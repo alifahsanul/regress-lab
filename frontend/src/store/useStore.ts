@@ -50,6 +50,9 @@ export const useStore = create<RegressionState>((set, get) => ({
   setSelectedModel: (model) => set({ selectedModel: model }),
   setPolynomialDegree: (degree) => set({ polynomialDegree: degree }),
   setTreeMaxDepth: (depth) => set({ treeMaxDepth: depth }),
-  clearPoints: () => set({ points: [] }),
+  clearPoints: () => {
+    console.log('clearPoints called');
+    set({ points: [] });
+  },
   getPointCount: () => get().points.length,
-})); 
+}));
