@@ -1,10 +1,78 @@
 'use client';
 
+import React, { useState } from 'react';
 import Canvas from '../src/components/Canvas/Canvas';
 import { useStore } from '../src/store/useStore';
 
 export default function Home() {
   const { clearPoints } = useStore();
+  const [selectedModels, setSelectedModels] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const points = useStore(state => state.points);
+
+  const handleModelChange = (model: string, checked: boolean) => {
+    if (checked) {
+      if (selectedModels.length === 2) {
+        setSelectedModels([selectedModels[1], model]); // Remove oldest, add new
+      } else {
+        setSelectedModels([...selectedModels, model]);
+      }
+    } else {
+      setSelectedModels(selectedModels.filter(m => m !== model));
+    }
+  };
+
+  const handleRunModel = async () => {
+    if (points.length < 2) {
+      setError('Not enough data');
+      return;
+    }
+    if (selectedModels.length === 0) {
+      setError('Please select at least 1 model');
+      return;
+    }
+    const allXSame = points.every(p => p.x === points[0].x);
+    if (allXSame) {
+      setError('Regression cannot be performed: all x values are the same.');
+      return;
+    }
+    setError(null);
+
+    // Call backend API for each selected model
+    for (const model of selectedModels) {
+      try {
+        const response = await fetch('http://localhost:8000/api/fit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            points: points.map(p => ({ x: p.x, y: p.y })),
+            regression_type: model, // <-- use regression_type here!
+            polynomial_degree: 2,
+            tree_max_depth: 3
+          })
+        });
+        if (!response.ok) {
+          let err;
+          try {
+            err = await response.json();
+          } catch (e) {
+            err = { detail: response.statusText };
+          }
+          setError(
+            typeof err === 'string'
+              ? err
+              : err.detail || err.msg || JSON.stringify(err)
+          );
+          return;
+        }
+        const data = await response.json();
+        console.log('Regression result for', model, data);
+      } catch (err) {
+        setError('Failed to connect to backend');
+        return;
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -25,44 +93,57 @@ export default function Home() {
                 Clear Points
               </button>
             </div>
+            <div className="mt-8">
+              <h2 className="text-2xl font-semibold">Model Choice</h2>
+              <div className="mt-4 flex flex-col gap-2">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    value="linear"
+                    checked={selectedModels.includes('linear')}
+                    onChange={e => handleModelChange('linear', e.target.checked)}
+                    className="form-checkbox text-blue-600"
+                  />
+                  Linear Regression
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    value="polynomial"
+                    checked={selectedModels.includes('polynomial')}
+                    onChange={e => handleModelChange('polynomial', e.target.checked)}
+                    className="form-checkbox text-blue-600"
+                  />
+                  Polynomial Regression
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    value="tree"
+                    checked={selectedModels.includes('tree')}
+                    onChange={e => handleModelChange('tree', e.target.checked)}
+                    className="form-checkbox text-blue-600"
+                  />
+                  Decision Tree Regression
+                </label>
+                <p className="text-xs text-gray-500 mt-2">You can select up to 2 models.</p>
+                <button
+                  className="mt-4 w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors"
+                  type="button"
+                  onClick={handleRunModel}
+                >
+                  Run model
+                </button>
+                {error && (
+                  <p className="text-red-600 text-sm mt-2">{error}</p>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Control panel */}
           <div className="bg-gray-50 rounded-lg p-4">
-            <h2 className="text-xl font-semibold mb-4">Controls</h2>
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-medium mb-2">Model Type</h3>
-                <select className="w-full p-2 border rounded">
-                  <option value="linear">Linear Regression</option>
-                  <option value="polynomial">Polynomial Regression</option>
-                  <option value="decision-tree">Decision Tree</option>
-                </select>
-              </div>
-
-              <div>
-                <h3 className="font-medium mb-2">Parameters</h3>
-                <div className="space-y-2">
-                  <div>
-                    <label className="block text-sm">Degree (Polynomial)</label>
-                    <input 
-                      type="range" 
-                      min="1" 
-                      max="10" 
-                      defaultValue="2"
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-medium mb-2">Statistics</h3>
-                <div className="bg-white p-2 rounded">
-                  <p className="text-sm">R² Score: <span className="font-mono">0.00</span></p>
-                </div>
-              </div>
-            </div>
+            {/* Control panel is now empty */}
           </div>
         </div>
       </main>
