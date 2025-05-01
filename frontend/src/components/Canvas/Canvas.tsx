@@ -21,6 +21,7 @@ const Canvas = () => {
   const [regressionLine, setRegressionLine] = useState<Point[]>([]);
   const [r2Score, setR2Score] = useState<number | null>(null);
 
+
   const fitRegression = async () => {
     if (points.length < 2) return;
 
@@ -78,11 +79,11 @@ const Canvas = () => {
 
     // Create scales
     const xScale = d3.scaleLinear()
-      .domain([0, 10])
+      .domain([-10, 10])
       .range([margin.left, width - margin.right]);
 
     const yScale = d3.scaleLinear()
-      .domain([0, 10])
+      .domain([-10, 10])
       .range([height - margin.bottom, margin.top]);
 
     // Add axes
