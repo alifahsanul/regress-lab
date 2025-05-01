@@ -1,18 +1,15 @@
-import Image from "next/image";
+import Canvas from '../components/Canvas';
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-white">
-      <main className="container mx-auto px-4 py-8">
+      <main className="w-full px-2 py-8">
         <h1 className="text-3xl font-bold mb-8 text-center">Regression Lab</h1>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           {/* Main visualization area */}
-          <div className="lg:col-span-2 bg-gray-50 rounded-lg p-4 min-h-[500px]">
-            {/* Canvas will go here */}
-            <div className="w-full h-full border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-              <p className="text-gray-500">Canvas Loading...</p>
-            </div>
+          <div className="lg:col-span-3 bg-gray-50 rounded-lg p-4">
+            <Canvas />
           </div>
 
           {/* Control panel */}
