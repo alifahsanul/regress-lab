@@ -170,7 +170,7 @@ const Canvas = () => {
       </div>
       <svg
         ref={svgRef}
-        width={600}
+        width={500}
         height={400}
         className="border border-gray-200 rounded"
       />

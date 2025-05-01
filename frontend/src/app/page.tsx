@@ -19,14 +19,14 @@ export default function Home() {
           Interactive Regression Visualization
         </h1>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4"> {/* Reduced gap for better spacing */}
+          <div className="lg:col-span-3 w-full"> {/* Ensure full width for Canvas */}
             <Suspense fallback={<div>Loading canvas...</div>}>
               <Canvas />
             </Suspense>
           </div>
           
-          <div>
+          <div className="lg:col-span-1"> {/* ControlPanel remains 1/4 of the width */}
             <Suspense fallback={<div>Loading controls...</div>}>
               <ControlPanel />
             </Suspense>
@@ -35,4 +35,4 @@ export default function Home() {
       </div>
     </main>
   );
-} 
+}
