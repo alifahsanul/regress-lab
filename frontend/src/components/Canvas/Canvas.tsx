@@ -4,20 +4,8 @@ import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { useStore } from '../../store/useStore';
 import { motion } from 'framer-motion';
-
-interface Point {
-  x: number;
-  y: number;
-}
-
-interface RegressionResult {
-  modelType: string;
-  coefficients: number[] | null;
-  intercept: number | null;
-  r2_score: number;
-  predictions: number[];
-  line_points: Point[];
-}
+import { fetchRegressionResults } from '../../utils/api';
+import { Point, RegressionResult } from '../../types';
 
 // Model type display names
 const MODEL_NAMES: { [key: string]: string } = {
@@ -29,8 +17,42 @@ const MODEL_NAMES: { [key: string]: string } = {
 
 const Canvas = () => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const { points, addPoint, updatePoint, regressionResults, clearPoints, MAX_POINTS } = useStore();
+  const {
+    points,
+    addPoint,
+    updatePoint,
+    regressionResults,
+    clearPoints,
+    MAX_POINTS,
+    selectedModel,
+    polynomialDegree,
+    treeMaxDepth,
+    addRegressionResult,
+    clearRegressionResults
+  } = useStore();
 
+  // Function to run regression
+  const runRegression = async () => {
+    if (points.length < 2) {
+      alert('At least 2 points are required to run regression');
+      return;
+    }
+
+    try {
+      clearRegressionResults();
+      const result = await fetchRegressionResults(
+        points,
+        selectedModel,
+        polynomialDegree,
+        treeMaxDepth
+      );
+      addRegressionResult(result);
+    } catch (error) {
+      console.error('Error fetching regression results:', error);
+    }
+  };
+
+  // Effect to handle D3 visualization
   useEffect(() => {
     if (!svgRef.current) return;
 
@@ -75,13 +97,17 @@ const Canvas = () => {
     svg.append('g')
       .attr('class', 'x-axis')
       .attr('transform', `translate(0,${yScale(0)})`)
-      .call(d3.axisBottom(xScale));
+      .call(d3.axisBottom(xScale))
+      .selectAll('text')
+      .style('fill', '#374151');
 
     // Add y-axis ticks and labels
     svg.append('g')
       .attr('class', 'y-axis')
       .attr('transform', `translate(${xScale(0)},0)`)
-      .call(d3.axisLeft(yScale));
+      .call(d3.axisLeft(yScale))
+      .selectAll('text')
+      .style('fill', '#374151');
 
     // Create line generator
     const lineGenerator = d3.line<Point>()
@@ -135,9 +161,6 @@ const Canvas = () => {
       addPoint(newPoint);
     });
 
-    console.log('Canvas points:', points);
-    console.log('Regression results:', regressionResults);
-
   }, [points, addPoint, updatePoint, regressionResults]);
 
   return (
@@ -158,7 +181,7 @@ const Canvas = () => {
       <div className="mt-4">
         <button
           onClick={clearPoints}
-          className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors"
+          className="w-full bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 transition-colors"
         >
           Clear Points
         </button>
@@ -170,13 +193,13 @@ const Canvas = () => {
             {regressionResults.map((result, index) => {
               const colors = ['#3b82f6', '#10b981', '#8b5cf6']; // Keep colors consistent
               return (
-                <div key={result.modelType} className="flex items-center gap-2">
+                <div key={`${result.modelType}-${index}`} className="flex items-center gap-2">
                   <div 
                     className="w-4 h-0.5" 
                     style={{ backgroundColor: colors[index % colors.length] }}
                   />
                   <span 
-                    className="text-sm"
+                    className="text-sm text-gray-700"
                     style={{ color: colors[index % colors.length] }}
                   >
                     {MODEL_NAMES[result.modelType]} (R² = {result.r2_score.toFixed(3)})

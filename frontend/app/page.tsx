@@ -3,8 +3,10 @@
 import React, { useState } from 'react';
 import Canvas from '../src/components/Canvas/Canvas';
 import { useStore } from '../src/store/useStore';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
+  const router = useRouter();
   const { clearRegressionResults, addRegressionResult } = useStore();
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -87,9 +89,21 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Simple navbar */}
+      <nav className="bg-white shadow-md">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900">Regression Lab</h1>
+          <button
+            onClick={() => router.push('/login')}
+            className="px-6 py-2.5 bg-red-600 text-white font-medium text-sm rounded-lg shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+          >
+            Sign Out
+          </button>
+        </div>
+      </nav>
+
+      {/* Existing main content */}
       <main className="w-full px-2 py-8">
-        <h1 className="text-3xl font-bold mb-8 text-center">Regression Lab</h1>
-        
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           {/* Main visualization area */}
           <div className="lg:col-span-3 bg-gray-50 rounded-lg p-4">
