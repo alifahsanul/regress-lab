@@ -1,15 +1,22 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
+import os
 
 from regressor import Point, RegressionRequest, RegressionResponse, create_regressor
 
 app = FastAPI()
 
+# Get allowed origins from environment variable or use default
+ALLOWED_ORIGINS = os.getenv(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,https://regress-lab.vercel.app"
+).split(",")
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow CORS for local frontend
+    allow_origins=ALLOWED_ORIGINS,  # More secure CORS configuration
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
