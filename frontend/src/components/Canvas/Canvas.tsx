@@ -29,13 +29,13 @@ const MODEL_NAMES: { [key: string]: string } = {
 
 const Canvas = () => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const { points, addPoint, updatePoint, regressionResults } = useStore();
+  const { points, addPoint, updatePoint, regressionResults, clearPoints, MAX_POINTS } = useStore();
 
   useEffect(() => {
     if (!svgRef.current) return;
 
     const svg = d3.select(svgRef.current);
-    const width = 600;
+    const width = 500;
     const height = 400;
     const margin = { top: 20, right: 20, bottom: 30, left: 40 };
 
@@ -45,23 +45,43 @@ const Canvas = () => {
     // Create scales
     const xScale = d3.scaleLinear()
       .domain([-10, 10])
-      .range([margin.left, width - 2 * margin.left - margin.right]);
+      .range([margin.left, width - margin.left - margin.right]);
 
     const yScale = d3.scaleLinear()
       .domain([-10, 10])
       .range([height - margin.bottom, margin.top]);
 
-    // Add axes
-    const xAxis = d3.axisBottom(xScale);
-    const yAxis = d3.axisLeft(yScale);
+    // Add center vertical line (y-axis)
+    svg.append('line')
+      .attr('class', 'axis-line')
+      .attr('x1', xScale(0))
+      .attr('x2', xScale(0))
+      .attr('y1', margin.top)
+      .attr('y2', height - margin.bottom)
+      .attr('stroke', '#666')
+      .attr('stroke-width', 1);
 
-    svg.append('g')
-      .attr('transform', `translate(0,${height - margin.bottom})`)
-      .call(xAxis);
+    // Add center horizontal line (x-axis)
+    svg.append('line')
+      .attr('class', 'axis-line')
+      .attr('x1', margin.left)
+      .attr('x2', width - margin.left - margin.right)
+      .attr('y1', yScale(0))
+      .attr('y2', yScale(0))
+      .attr('stroke', '#666')
+      .attr('stroke-width', 1);
 
+    // Add x-axis ticks and labels
     svg.append('g')
-      .attr('transform', `translate(${margin.left},0)`)
-      .call(yAxis);
+      .attr('class', 'x-axis')
+      .attr('transform', `translate(0,${yScale(0)})`)
+      .call(d3.axisBottom(xScale));
+
+    // Add y-axis ticks and labels
+    svg.append('g')
+      .attr('class', 'y-axis')
+      .attr('transform', `translate(${xScale(0)},0)`)
+      .call(d3.axisLeft(yScale));
 
     // Create line generator
     const lineGenerator = d3.line<Point>()
@@ -81,34 +101,6 @@ const Canvas = () => {
         .attr('d', lineGenerator);
     });
 
-    // Add legend if there are regression results
-    if (regressionResults.length > 0) {
-      const legendGroup = svg.append('g')
-        .attr('class', 'legend')
-        .attr('transform', `translate(${margin.left + 10}, ${margin.top + 10})`);
-
-      regressionResults.forEach((result, index) => {
-        const legendItem = legendGroup.append('g')
-          .attr('transform', `translate(0, ${index * 25})`);
-
-        // Add colored line
-        legendItem.append('line')
-          .attr('x1', 0)
-          .attr('x2', 20)
-          .attr('y1', 0)
-          .attr('y2', 0)
-          .attr('stroke', colors[index % colors.length])
-          .attr('stroke-width', 2);
-
-        // Add model name and R² score
-        legendItem.append('text')
-          .attr('x', 30)
-          .attr('y', 5)
-          .attr('font-size', '12px')
-          .text(`${MODEL_NAMES[result.modelType]} (R² = ${result.r2_score.toFixed(3)})`);
-      });
-    }
-
     // Add points
     const circles = svg.selectAll<SVGCircleElement, Point>('circle')
       .data(points);
@@ -118,7 +110,7 @@ const Canvas = () => {
         .attr('cx', (d: Point) => xScale(d.x))
         .attr('cy', (d: Point) => yScale(d.y))
         .attr('r', 5)
-        .attr('fill', '#3b82f6')
+        .attr('fill', '#6b7280')
         .call(d3.drag<SVGCircleElement, Point>()
           .on('drag', (event, d) => {
             const x = xScale.invert(event.x);
@@ -154,8 +146,8 @@ const Canvas = () => {
       animate={{ opacity: 1 }}
       className="bg-white rounded-lg shadow-lg p-4"
     >
-      <div className="flex justify-end mb-2 text-sm text-gray-600">
-        Points: {points.length}/20
+      <div className="text-sm text-gray-600 mb-2">
+        Points: {points.length}/{MAX_POINTS}
       </div>
       <svg
         ref={svgRef}
@@ -163,6 +155,38 @@ const Canvas = () => {
         height={400}
         className="border border-gray-200 rounded"
       />
+      <div className="mt-4">
+        <button
+          onClick={clearPoints}
+          className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors"
+        >
+          Clear Points
+        </button>
+      </div>
+      {regressionResults.length > 0 && (
+        <div className="mt-4 flex flex-col gap-2 border-t border-gray-200 pt-4">
+          <div className="text-sm font-medium text-gray-700">Regression Results:</div>
+          <div className="flex flex-col gap-2">
+            {regressionResults.map((result, index) => {
+              const colors = ['#3b82f6', '#10b981', '#8b5cf6']; // Keep colors consistent
+              return (
+                <div key={result.modelType} className="flex items-center gap-2">
+                  <div 
+                    className="w-4 h-0.5" 
+                    style={{ backgroundColor: colors[index % colors.length] }}
+                  />
+                  <span 
+                    className="text-sm"
+                    style={{ color: colors[index % colors.length] }}
+                  >
+                    {MODEL_NAMES[result.modelType]} (R² = {result.r2_score.toFixed(3)})
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };

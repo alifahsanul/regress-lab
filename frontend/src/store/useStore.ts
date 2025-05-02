@@ -37,9 +37,9 @@ export const useStore = create<RegressionState>((set, get) => ({
   points: [],
   selectedModel: 'linear',
   polynomialDegree: 2,
-  treeMaxDepth: 3,
+  treeMaxDepth: 2,
   regressionResults: [],
-  MAX_POINTS: 20,
+  MAX_POINTS: 50,
   
   addPoint: (point) => {
     set((state) => {

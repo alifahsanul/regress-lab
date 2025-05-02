@@ -5,7 +5,7 @@ import Canvas from '../src/components/Canvas/Canvas';
 import { useStore } from '../src/store/useStore';
 
 export default function Home() {
-  const { clearPoints, clearRegressionResults, addRegressionResult } = useStore();
+  const { clearRegressionResults, addRegressionResult } = useStore();
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const points = useStore(state => state.points);
@@ -49,7 +49,7 @@ export default function Home() {
             points: points.map(p => ({ x: p.x, y: p.y })),
             regression_type: model,
             polynomial_degree: 2,
-            tree_max_depth: 3
+            tree_max_depth: 2
           })
         });
         if (!response.ok) {
@@ -94,16 +94,6 @@ export default function Home() {
           {/* Main visualization area */}
           <div className="lg:col-span-3 bg-gray-50 rounded-lg p-4">
             <Canvas />
-            <div className="mt-4">
-              <button
-                onClick={() => {
-                  console.log('Clear Points button clicked');
-                  clearPoints();
-                }}
-                className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition-colors">
-                Clear Points
-              </button>
-            </div>
             <div className="mt-8">
               <h2 className="text-2xl font-semibold">Model Choice</h2>
               <div className="mt-4 flex flex-col gap-2">
