@@ -10,9 +10,26 @@ interface Point {
   y: number;
 }
 
+interface RegressionResult {
+  modelType: string;
+  coefficients: number[] | null;
+  intercept: number | null;
+  r2_score: number;
+  predictions: number[];
+  line_points: Point[];
+}
+
+// Model type display names
+const MODEL_NAMES: { [key: string]: string } = {
+  'linear': 'Linear Regression',
+  'polynomial': 'Polynomial Regression',
+  'tree': 'Decision Tree',
+  'dummy': 'Dummy (y=x)'
+};
+
 const Canvas = () => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const { points, addPoint, updatePoint } = useStore();
+  const { points, addPoint, updatePoint, regressionResults } = useStore();
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -46,20 +63,51 @@ const Canvas = () => {
       .attr('transform', `translate(${margin.left},0)`)
       .call(yAxis);
 
-    // Add grid lines
-    svg.append('g')
-      .attr('class', 'grid')
-      .attr('transform', `translate(0,${height - margin.bottom})`)
-      .call(d3.axisBottom(xScale)
-        .tickSize(-height + margin.top + margin.bottom)
-        .tickFormat(() => ''));
+    // Create line generator
+    const lineGenerator = d3.line<Point>()
+      .x(d => xScale(d.x))
+      .y(d => yScale(d.y))
+      .curve(d3.curveMonotoneX);
 
-    svg.append('g')
-      .attr('class', 'grid')
-      .attr('transform', `translate(${margin.left},0)`)
-      .call(d3.axisLeft(yScale)
-        .tickSize(-width + margin.left + margin.right)
-        .tickFormat(() => ''));
+    // Draw regression lines
+    const colors = ['#3b82f6', '#10b981', '#8b5cf6']; // blue, green, purple
+    regressionResults.forEach((result, index) => {
+      // Draw the line
+      svg.append('path')
+        .datum(result.line_points)
+        .attr('fill', 'none')
+        .attr('stroke', colors[index % colors.length])
+        .attr('stroke-width', 2)
+        .attr('d', lineGenerator);
+    });
+
+    // Add legend if there are regression results
+    if (regressionResults.length > 0) {
+      const legendGroup = svg.append('g')
+        .attr('class', 'legend')
+        .attr('transform', `translate(${margin.left + 10}, ${margin.top + 10})`);
+
+      regressionResults.forEach((result, index) => {
+        const legendItem = legendGroup.append('g')
+          .attr('transform', `translate(0, ${index * 25})`);
+
+        // Add colored line
+        legendItem.append('line')
+          .attr('x1', 0)
+          .attr('x2', 20)
+          .attr('y1', 0)
+          .attr('y2', 0)
+          .attr('stroke', colors[index % colors.length])
+          .attr('stroke-width', 2);
+
+        // Add model name and R² score
+        legendItem.append('text')
+          .attr('x', 30)
+          .attr('y', 5)
+          .attr('font-size', '12px')
+          .text(`${MODEL_NAMES[result.modelType]} (R² = ${result.r2_score.toFixed(3)})`);
+      });
+    }
 
     // Add points
     const circles = svg.selectAll<SVGCircleElement, Point>('circle')
@@ -96,8 +144,9 @@ const Canvas = () => {
     });
 
     console.log('Canvas points:', points);
+    console.log('Regression results:', regressionResults);
 
-  }, [points, addPoint, updatePoint]);
+  }, [points, addPoint, updatePoint, regressionResults]);
 
   return (
     <motion.div
@@ -105,6 +154,9 @@ const Canvas = () => {
       animate={{ opacity: 1 }}
       className="bg-white rounded-lg shadow-lg p-4"
     >
+      <div className="flex justify-end mb-2 text-sm text-gray-600">
+        Points: {points.length}/20
+      </div>
       <svg
         ref={svgRef}
         width={500}

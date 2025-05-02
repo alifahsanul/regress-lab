@@ -5,7 +5,7 @@ import Canvas from '../src/components/Canvas/Canvas';
 import { useStore } from '../src/store/useStore';
 
 export default function Home() {
-  const { clearPoints } = useStore();
+  const { clearPoints, clearRegressionResults, addRegressionResult } = useStore();
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const points = useStore(state => state.points);
@@ -37,6 +37,7 @@ export default function Home() {
       return;
     }
     setError(null);
+    clearRegressionResults(); // Clear previous results
 
     // Call backend API for each selected model
     for (const model of selectedModels) {
@@ -46,7 +47,7 @@ export default function Home() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             points: points.map(p => ({ x: p.x, y: p.y })),
-            regression_type: model, // <-- use regression_type here!
+            regression_type: model,
             polynomial_degree: 2,
             tree_max_depth: 3
           })
@@ -67,6 +68,16 @@ export default function Home() {
         }
         const data = await response.json();
         console.log('Regression result for', model, data);
+        
+        // Add regression result to store
+        addRegressionResult({
+          modelType: model,
+          coefficients: data.coefficients,
+          intercept: data.intercept,
+          r2_score: data.r2_score,
+          predictions: data.predictions,
+          line_points: data.line_points
+        });
       } catch (err) {
         setError('Failed to connect to backend');
         return;
@@ -125,6 +136,16 @@ export default function Home() {
                     className="form-checkbox text-blue-600"
                   />
                   Decision Tree Regression
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    value="dummy"
+                    checked={selectedModels.includes('dummy')}
+                    onChange={e => handleModelChange('dummy', e.target.checked)}
+                    className="form-checkbox text-blue-600"
+                  />
+                  Dummy Regressor (y=x)
                 </label>
                 <p className="text-xs text-gray-500 mt-2">You can select up to 2 models.</p>
                 <button

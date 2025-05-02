@@ -1,11 +1,8 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Literal
 import numpy as np
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.tree import DecisionTreeRegressor
+
+from regressor import Point, RegressionRequest, RegressionResponse, create_regressor
 
 app = FastAPI()
 
@@ -18,22 +15,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class Point(BaseModel):
-    x: float
-    y: float
-
-class RegressionRequest(BaseModel):
-    points: List[Point]
-    regression_type: Literal["linear", "polynomial", "tree"]
-    polynomial_degree: int = 2
-    tree_max_depth: int = 3
-
-class RegressionResponse(BaseModel):
-    coefficients: List[float]
-    intercept: float
-    r2_score: float
-    predictions: List[float]
-
 @app.post("/api/fit", response_model=RegressionResponse)
 async def fit_regression(request: RegressionRequest):
     print("Received /api/fit request")
@@ -41,6 +22,7 @@ async def fit_regression(request: RegressionRequest):
     print(f"Regression type: {request.regression_type}")
     print(f"Polynomial degree: {request.polynomial_degree}")
     print(f"Tree max depth: {request.tree_max_depth}")
+    
     if len(request.points) < 2:
         print("Error: Less than 2 points provided")
         raise HTTPException(status_code=400, detail="At least 2 points are required")
@@ -49,39 +31,29 @@ async def fit_regression(request: RegressionRequest):
     X = np.array([[p.x] for p in request.points])
     y = np.array([p.y for p in request.points])
 
-    # Fit the appropriate model
-    if request.regression_type == "linear":
-        model = LinearRegression()
-        model.fit(X, y)
-        coefficients = [model.coef_[0]]
-        intercept = model.intercept_
-        predictions = model.predict(X)
-        r2_score = model.score(X, y)
-
-    elif request.regression_type == "polynomial":
-        poly = PolynomialFeatures(degree=request.polynomial_degree)
-        X_poly = poly.fit_transform(X)
-        model = LinearRegression()
-        model.fit(X_poly, y)
-        coefficients = model.coef_.tolist()
-        intercept = model.intercept_
-        predictions = model.predict(X_poly)
-        r2_score = model.score(X_poly, y)
-
-    else:  # tree
-        model = DecisionTreeRegressor(max_depth=request.tree_max_depth)
-        model.fit(X, y)
-        coefficients = [0]  # Trees don't have coefficients in the same way
-        intercept = 0
-        predictions = model.predict(X)
-        r2_score = model.score(X, y)
+    # Create and fit the appropriate model
+    try:
+        regressor = create_regressor(
+            regression_type=request.regression_type,
+            polynomial_degree=request.polynomial_degree,
+            tree_max_depth=request.tree_max_depth
+        )
+        # First fit and get predictions for original points
+        coefficients, intercept, r2_score, predictions = regressor.fit_and_predict(X, y)
+        
+        # Generate points for drawing the regression line
+        line_points = regressor.generate_line_points(X, y)
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     print("Returning regression result")
     return RegressionResponse(
         coefficients=coefficients,
         intercept=intercept,
         r2_score=r2_score,
-        predictions=predictions.tolist()
+        predictions=predictions,
+        line_points=line_points
     )
 
 @app.get("/api/health")
