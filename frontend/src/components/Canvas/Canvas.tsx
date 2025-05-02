@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { useStore } from '../../store/useStore';
 import { motion } from 'framer-motion';
@@ -17,6 +17,8 @@ const MODEL_NAMES: { [key: string]: string } = {
 
 const Canvas = () => {
   const svgRef = useRef<SVGSVGElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 500, height: 400 });
   const {
     points,
     addPoint,
@@ -52,14 +54,31 @@ const Canvas = () => {
     }
   };
 
+  // Effect to handle resizing
+  useEffect(() => {
+    const handleResize = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setDimensions({ width: rect.width, height: rect.height });
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Effect to handle D3 visualization
   useEffect(() => {
     if (!svgRef.current) return;
-
+    const width = dimensions.width;
+    const height = dimensions.height;
+    const margin = {
+      top: height * 0.05,
+      right: width * 0.03,
+      bottom: height * 0.07,
+      left: width * 0.03
+    };
     const svg = d3.select(svgRef.current);
-    const width = 500;
-    const height = 400;
-    const margin = { top: 20, right: 20, bottom: 30, left: 40 };
 
     // Clear previous content
     svg.selectAll('*').remove();
@@ -67,7 +86,7 @@ const Canvas = () => {
     // Create scales
     const xScale = d3.scaleLinear()
       .domain([-10, 10])
-      .range([margin.left, width - margin.left - margin.right]);
+      .range([margin.left, width - margin.right]);
 
     const yScale = d3.scaleLinear()
       .domain([-10, 10])
@@ -87,7 +106,7 @@ const Canvas = () => {
     svg.append('line')
       .attr('class', 'axis-line')
       .attr('x1', margin.left)
-      .attr('x2', width - margin.left - margin.right)
+      .attr('x2', width - margin.right)
       .attr('y1', yScale(0))
       .attr('y2', yScale(0))
       .attr('stroke', '#666')
@@ -161,7 +180,7 @@ const Canvas = () => {
       addPoint(newPoint);
     });
 
-  }, [points, addPoint, updatePoint, regressionResults]);
+  }, [points, addPoint, updatePoint, regressionResults, dimensions]);
 
   return (
     <motion.div
@@ -172,12 +191,15 @@ const Canvas = () => {
       <div className="text-sm text-gray-600 mb-2">
         Points: {points.length}/{MAX_POINTS}
       </div>
-      <svg
-        ref={svgRef}
-        width={500}
-        height={400}
-        className="border border-gray-200 rounded"
-      />
+      <div ref={containerRef} className="w-full h-[250px] sm:h-[350px] md:h-[400px] mx-auto">
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+          width="100%"
+          height="100%"
+          className="border border-gray-200 rounded w-full h-full"
+        />
+      </div>
       <div className="mt-4">
         <button
           onClick={clearPoints}
