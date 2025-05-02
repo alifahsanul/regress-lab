@@ -6,6 +6,7 @@ import { useStore } from '../src/store/useStore';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../src/store/authStore';
 import Navbar from '../src/components/Navbar/Navbar';
+import { API_BASE_URL } from '../src/utils/api';
 
 export default function Home() {
   const router = useRouter();
@@ -55,7 +56,7 @@ export default function Home() {
     // Call backend API for each selected model
     for (const model of selectedModels) {
       try {
-        const response = await fetch('http://localhost:8000/api/fit', {
+        const response = await fetch(`${API_BASE_URL}/api/fit`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
