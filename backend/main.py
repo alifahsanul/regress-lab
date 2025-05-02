@@ -15,6 +15,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+async def root():
+    return "roger"
+
 @app.post("/api/fit", response_model=RegressionResponse)
 async def fit_regression(request: RegressionRequest):
     print("Received /api/fit request")
