@@ -1,14 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '../../src/store/authStore';
 
 export default function LoginPage() {
   const router = useRouter();
+  const login = useAuthStore((state: { login: (password: string) => Promise<void> }) => state.login);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const isHydrated = useAuthStore(state => state.isHydrated);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Only redirect after hydration is complete
+    if (isHydrated && isAuthenticated) {
+      router.push('/');
+    }
+  }, [isAuthenticated, isHydrated, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,26 +27,28 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      // Check against environment variable
-      const correctPassword = process.env.NEXT_PUBLIC_APP_PASSWORD;
-      if (!correctPassword) {
-        setError('Error: Password not configured');
-        return;
-      }
-      
-      if (password === correctPassword) {
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 500));
-        router.push('/');
-      } else {
-        setError('Invalid password');
-      }
+      await login(password);
+      router.push('/');
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError(err instanceof Error ? err.message : 'An error occurred. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Show loading state while hydrating
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render login form if already authenticated
+  if (isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -53,6 +66,7 @@ export default function LoginPage() {
             </label>
             <input
               id="password"
+              name="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -75,13 +89,8 @@ export default function LoginPage() {
             className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isLoading}
           >
-            {isLoading ? 'Checking...' : 'Enter Lab'}
+            {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
-
-          {process.env.NODE_ENV === 'development' && (
-            <p className="text-xs text-gray-500 text-center mt-4">
-            </p>
-          )}
         </form>
       </motion.div>
     </div>

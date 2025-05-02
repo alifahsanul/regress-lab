@@ -2,12 +2,14 @@
 
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useAuthStore } from '../../store/authStore';
 
 export default function Navbar() {
   const router = useRouter();
+  const logout = useAuthStore(state => state.logout);
 
   const handleLogout = () => {
-    // For now, just redirect to login page
+    logout();
     router.push('/login');
   };
 

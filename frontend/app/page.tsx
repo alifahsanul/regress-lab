@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Canvas from '../src/components/Canvas/Canvas';
 import { useStore } from '../src/store/useStore';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '../src/store/authStore';
+import Navbar from '../src/components/Navbar/Navbar';
 
 export default function Home() {
   const router = useRouter();
@@ -11,6 +13,15 @@ export default function Home() {
   const [selectedModels, setSelectedModels] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const points = useStore(state => state.points);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const isHydrated = useAuthStore(state => state.isHydrated);
+
+  useEffect(() => {
+    // Only redirect after hydration is complete
+    if (isHydrated && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, isHydrated, router]);
 
   const handleModelChange = (model: string, checked: boolean) => {
     if (checked) {
@@ -87,20 +98,23 @@ export default function Home() {
     }
   };
 
+  // Show loading state while hydrating
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render anything while checking authentication
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-white">
-      {/* Simple navbar */}
-      <nav className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Regression Lab</h1>
-          <button
-            onClick={() => router.push('/login')}
-            className="px-6 py-2.5 bg-red-600 text-white font-medium text-sm rounded-lg shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
-          >
-            Sign Out
-          </button>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Existing main content */}
       <main className="w-full px-2 py-8">
