@@ -10,6 +10,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Regression Visualization",
   description: "Interactive visualization of regression models",
+  icons: {
+    icon: '/favicon.png',
+  },
 };
 
 export default function RootLayout({
