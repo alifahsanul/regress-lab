@@ -13,6 +13,8 @@ ALLOWED_ORIGINS = os.getenv(
     "http://localhost:3000,https://regress-lab.vercel.app,https://regress-lab-production.up.railway.app"
 ).split(",")
 
+print("ALLOWED_ORIGINS", ALLOWED_ORIGINS)
+
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
