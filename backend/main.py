@@ -10,7 +10,7 @@ app = FastAPI()
 # Get allowed origins from environment variable or use default
 ALLOWED_ORIGINS = os.getenv(
     "ALLOWED_ORIGINS",
-    "http://localhost:3000,https://regress-lab.vercel.app"
+    "http://localhost:3000,https://regress-lab.vercel.app,https://regress-lab-production.up.railway.app"
 ).split(",")
 
 # Configure CORS
